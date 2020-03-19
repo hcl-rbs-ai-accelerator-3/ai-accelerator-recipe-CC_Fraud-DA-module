@@ -545,7 +545,7 @@ def multivariate(data,plt=None,sns=None, vmin=None, vmax=None, cmap=None, center
         print(e)
 
 
-def profile_data(data):
+def profile_data(data, target):
     
     '''
     Generate a profile report from a Dataset stored as a pandas `DataFrame`.
@@ -575,7 +575,7 @@ def profile_data(data):
     '''
     
     #return data.profile_report(style={'full_width':True})
-    return pandas_profiling.ProfileReport(data)    
+    return pandas_profiling.ProfileReport(data, target)    
 
 
 def stats(data):

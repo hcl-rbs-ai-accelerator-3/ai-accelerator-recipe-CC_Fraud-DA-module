@@ -575,7 +575,7 @@ def profile_data(data, target):
     '''
     
     #return data.profile_report(style={'full_width':True})
-    return pandas_profiling.ProfileReport(data, target)    
+    return pandas_profiling.ProfileReport(data,target)    
 
 
 def stats(data):
@@ -811,72 +811,31 @@ def outlier_detection(df, method = 'dbscan', behaviour = 'new', max_samples= 100
 
 
 def impute(entire_data,col_name=None, col_type='categorical',algo_name = 'RFC'): 
-    
-    
-    '''
-    This function helps to detect and impute the missing values. 
-    
-    Parameters:	
-    entire_data : Dataframe
-    
-    col_name : Feature/Column name to be chosen for imputation
-    
-    col_type : 'categorical' or 'continuous' 
-    It is to be mentioned by the user.
-    
-    algo_name : 'RFC' or 'LR' 
-    
-    Uses RFC (Random Forest Classifier) for imputing categorical features and LR (Linear Regression) for imputing numerical features. 
-    
-    Returns:	
-    entire_data : Dataframe
-    
-    Returns the dataframe after imputing the missing values.
-    
-    '''
-    
-    
     try:
-        global entire_data_copy
-        global data_cat_cols
-        entire_data_copy = entire_data.copy()
-        data_cat_cols =entire_data.select_dtypes(['object','category'])
-        data_cat_cols = data_cat_cols.astype('category')
         if(col_name==None):
             col_list = entire_data.columns[entire_data.isna().any()].tolist()
+            #col_list = entire_data.columns
             col_types = [entire_data[col].dtype for col in col_list]
             list_indices = range(0,len(col_list))
             for val in list_indices:
                 #print(0.1)
+                #print(col_list[val])
+                #print(col_types[val])
                 if (col_types[val] not in ['int64','float64']):
-                    #print(0.2)     
+                    #print(0.2)
+                    #print(col_list[val])
+                    #print(col_types[val])
+                    entire_data[col_list[val]] = entire_data[col_list[val]].astype('float64')
                     entire_data = impute_columnwise(entire_data,col_list[val],col_type,algo_name)
-                   
                 else:
                     #print(0.3)
+                    #print(col_list[val])
+                    #print(col_types[val])
                     entire_data = impute_columnwise(entire_data,col_list[val],col_type='continuous',algo_name = 'LR')
-            
-            for c in data_cat_cols.columns:
-                name=c.replace(" ", "_")
-                cat_dict = dict(enumerate(data_cat_cols[c].cat.categories ))
-                entire_data[c] = [cat_dict[i] for i in entire_data[c]]
+                    
         else:
             #print(0.4)
             entire_data = impute_columnwise(entire_data,col_name,col_type,algo_name)
-            if col_type== 'categorical':
-                rem_col =[]
-                if col_name in data_cat_cols.columns:
-                    cat_dict = dict(enumerate(data_cat_cols[col_name].cat.categories ))
-                    entire_data[col_name] = [cat_dict[i] for i in entire_data[col_name]]
-                rem_col=list(data_cat_cols.columns)
-                rem_col.remove(col_name)
-
-                for c in rem_col:
-                    entire_data[c]=entire_data_copy[c]
-            else:
-                for c in data_cat_cols.columns:
-                    entire_data[c]=entire_data_copy[c]
-                
         return entire_data
     except Exception as e:
         print('Exception occurred in impute() in data quality module')
@@ -892,26 +851,81 @@ def impute_columnwise(entire_data,col_name, col_type='categorical',algo_name = '
     
     try:
        
+        #print('1')
+        #print(entire_data.columns)
+        #print(entire_data.shape)
+        
+        
         duplicates_removed_data = remove_duplicates(entire_data)
-        duplicates_removed_data= categ_to_numeric(duplicates_removed_data)           
+       
+        
+        
+        #print('2')
+        #print(entire_data.shape)
+        
+        #print(duplicates_removed_data.columns)
+        #print(duplicates_removed_data.shape)
         new_data = duplicates_removed_data
         
         if(len(duplicates_removed_data) > 1000):
             #print('2.1')
-            temp_data = duplicates_removed_data.dropna(axis=0)
-            new_data = remove_multicollinearity(temp_data, col_name)
-            new_data = imp_features(col_name, duplicates_removed_data[new_data.columns])
-            new_data = random_records(new_data)
+            #print(entire_data.shape)
             
+            #entire_data1 = entire_data
+            temp_data = duplicates_removed_data.dropna(axis=0)
+            #print('2.1.0')
+            #print(temp_data.head(10))
+            new_data = remove_multicollinearity(temp_data, col_name)
+            #new_data = remove_multicollinearity(duplicates_removed_data.dropna(),categ_to_numeric(duplicates_removed_data.dropna().drop(col_name)) col_name)
+            
+            
+            
+            
+            
+            #print('inside impute method, after calling remove_multicollinearity()')
+            #print(new_data.columns)
+            #print('2.1.1')
+            #print(entire_data.shape)
+            new_data = imp_features(col_name, duplicates_removed_data[new_data.columns])
+            #print('2.1.2')
+            #print(entire_data1.shape)
+            
+            #new_data = imp_features(col_name, duplicates_removed_data)
+            
+            
+            
+            
+            #print(new_data.columns)
+            #print(new_data.shape)
+            #print('2.2')
+            #print(entire_data1.shape)
+            #print(new_data.columns)
+            #print(new_data.shape)
+            new_data = random_records(new_data)
+            #print('2.3')
+            #print(entire_data1.shape)
+        #print(new_data.columns)
+        #print(new_data.shape)
+        #print('3')
+        #print(entire_data.shape)
+        # split 
+        #from sklearn.model_selection import train_test_split
         X = new_data.drop(col_name, axis =1)  
         y = new_data[col_name]
+        #print(X.columns)
+        #print(X.shape)
+        #print(y.shape)
+        #X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2, stratify=y, random_state=42)
         numeric_data = categ_to_numeric(X)
+        #print('4')
+        #print(numeric_data.columns)
+        #print(numeric_data.shape)
         if(col_type=='categorical' and algo_name == 'RFC'):
             #print('5')
-            classifier_impute_data= classifier_impute(col_name, numeric_data,y, entire_data, algo_name = 'RFC')           
-            return classifier_impute_data
+            return classifier_impute(col_name, numeric_data,y, entire_data, algo_name = 'RFC')
         else:
             #print('6')
+            #print(entire_data1.shape)
             return regression_impute(col_name, numeric_data,y, entire_data, algo_name = 'LR')
     
     except Exception as e:
@@ -921,22 +935,46 @@ def impute_columnwise(entire_data,col_name, col_type='categorical',algo_name = '
         
 def imp_features(col_name, entire_data):
     #print('4.1.1')
+    #print(entire_data.columns)
+    #print(entire_data.shape)
     data = entire_data.dropna()
     if(data[col_name].dtype not in ['int64','float64']):
         data[col_name] = data[col_name].astype('float64')
-    X = data.drop(col_name, axis=1) 
+    X = data.drop(col_name, axis=1)  
     y = data[col_name]
+    X = initial_impute(X)
+    #print('4.1.2')
+    #print(X.columns)
+    #print(X.shape)
     rfc = RandomForestClassifier(random_state = 0, n_jobs = -1)
+    #print('4.1.3')
     rfc.fit(X, y)
+    #print('4.1.4')
     df_imp = pd.DataFrame({'Column_name':X.columns, 'imp':rfc.feature_importances_}) 
+    #print('4.1.5')
+    #print(rfc.feature_importances_)
+    #print(type(df_imp))
+    #print(df_imp)
+    #print(df_imp.columns)
+    #print(df_imp.shape)
+    #df_imp = df_imp.sort_values('imp', ascending=False)
+    #print('After sorting')
+    #print(df_imp)
     df_imp_ts = df_imp.nlargest(int((0.6)*(df_imp.shape[0])),'imp') 
     #print('2.1.4')
+    #print(type(df_imp_ts))
+    #print(df_imp_ts.columns)
+    #print(df_imp_ts.shape)
     df_imp_ts = entire_data[df_imp_ts['Column_name']]
+    #print(df_imp_ts)
     df_imp_ts[col_name] = y
+    #print(df_imp_ts.shape)
     return df_imp_ts
 
 def random_records(data):
+    #print('inside random records 1')
     rndm_data = data.sample(frac=0.7)
+    #print('inside random records 2')
     return rndm_data
 
 def remove_duplicates(data):
@@ -946,58 +984,59 @@ def remove_duplicates(data):
 
 def categ_to_numeric(data):
     #print('3.1')
-    numeric_cols = data.select_dtypes(exclude=['object','category'])
-    obj_cols = data.select_dtypes(['object']).columns                  
-    for col in obj_cols:                                        
-        data[col] = data[col].astype('category')                 
-        data[col] = data[col].cat.codes                
-    cat_columns = data.select_dtypes(['category']).columns 
+    cat_columns = data.select_dtypes(['category']).columns
     data[cat_columns] = data[cat_columns].apply(lambda x: x.cat.codes)
-    total_cols = pd.concat([data[obj_cols], data[cat_columns]], axis=1, sort = False)
-    
-    for col in total_cols.columns:
-        data[col]=total_cols[col]
-    
-    #print('3.2')
     return data
-
 
 
 def classifier_impute(col_name, numeric_data, y, entire_data, algo_name = 'RFC'):
     #print('5.1')
-    object_cols = entire_data_copy.select_dtypes(['object']).columns
-    cat_columns = entire_data_copy.select_dtypes(['category']).columns
-    tot_cat_cols = list(object_cols) + list(cat_columns)
-    numeric_data = initial_impute(numeric_data,entire_data_copy)
+    numeric_data = initial_impute(numeric_data)
     numeric_data[col_name] = y
+    #print(numeric_data.columns)
+    #print('5.2')
+    #print(numeric_data.shape)
     train = numeric_data.dropna()
-    
-    for tc in train.columns:
-        train=train[train[tc] != -1]
+    #print('5.3')
     X_train = train.drop(col_name, axis =1)
+    
     y_train = train[col_name]
+    #print('5.4')
     model = RandomForestClassifier()
     model.fit(X_train,y_train)
+    #print('5.5')
     
     entire_data_imp_features = entire_data[numeric_data.columns]
-    test = entire_data_imp_features[(entire_data_imp_features[col_name] == -1) | (entire_data_imp_features[col_name].isnull())] 
-    X = test.drop(col_name, axis =1) 
-    y = test[col_name]   
-    X= initial_impute(X,entire_data_copy)
+    
+    test = entire_data_imp_features[entire_data_imp_features[col_name].isnull()]
+    
+    X = test.drop(col_name, axis =1)  
+    y = test[col_name]    
+    X= initial_impute(X)
     X= categ_to_numeric(X)
-
+    
+    #print(test.shape)
+    #print(test)
+    #print('5.6')
     if(X.shape[0]!=0):
         #print('5.5.1')
         for i in list(X.index):
             #print('5.5.2')
+            #print(i)
             temp_data_list = X.loc[i]
+            #print(temp_data_list)
+            #print(type(temp_data_list))
+            #temp_data_list.drop(col_name,inplace=True)
             keys = temp_data_list.keys()
+            #print(keys)
+            #print(temp_data_list.values)
             if(type(entire_data[col_name])=='int64'):
                 entire_data.loc[i,col_name]=int(model.predict((temp_data_list.values).reshape(1, -1)))
             else:
-                #print('5.5.3')
                 entire_data.loc[i,col_name]=model.predict((temp_data_list.values).reshape(1, -1))
-
+        #X_test = test.drop(col_name, axis =1)
+        #y_test = model.predict(X_test)
+        #print(entire_data.head())
         return entire_data
     else:
         print('There was no data for imputing')
@@ -1006,110 +1045,64 @@ def classifier_impute(col_name, numeric_data, y, entire_data, algo_name = 'RFC')
 def regression_impute(col_name, numeric_data,y, entire_data, algo_name = 'LR'):
     
     #print('6.1')
-    numeric_data = initial_impute(numeric_data,entire_data_copy)
+    numeric_data = initial_impute(numeric_data)
     numeric_data[col_name] = y
+    #print(numeric_data.columns)
+    #print('6.2')
+    #print(numeric_data.shape)
+    #print('6.2.1')
+    #print(entire_data.shape)
     train = numeric_data.dropna()
+    #print('6.3')
     X_train = train.drop(col_name, axis =1)
+    
     y_train = train[col_name]
+    #print('6.4')
     model = linear_model.LinearRegression()
     model.fit(X_train,y_train)
+    #print('6.5')
+    #print(entire_data.shape)
     entire_data_imp_features = entire_data[numeric_data.columns]
+    #print('6.5.1')
+    #print(entire_data_imp_features.shape)
     test = entire_data_imp_features[entire_data_imp_features[col_name].isnull()]
+    #print('Inside regression_impute')
+    #print(test.shape)
     
     X = test.drop(col_name, axis =1)  
     y = test[col_name]    
-    X= initial_impute(X,entire_data_copy)
+    X= initial_impute(X)
     X= categ_to_numeric(X)
-
+    
+    #print(test.shape)
+    #print(test)
+    #print('6.6')
     if(X.shape[0]!=0):
         #print('6.6.1')
         for i in list(X.index):
             #print('6.6.2')
+            #print(i)
             temp_data_list = X.loc[i]
+            #print(temp_data_list)
+            #print(type(temp_data_list))
+            #temp_data_list.drop(col_name,inplace=True)
             keys = temp_data_list.keys()
+            #print(keys)
+            #print(temp_data_list.values)
             if(entire_data[col_name].dtype=='float64' ):
                 entire_data.loc[i,col_name]=model.predict((temp_data_list.values).reshape(1, -1)).astype('int')
-               
+                #entire_data[col_name] = entire_data[col_name].astype('int')
             else:
                 entire_data.loc[i,col_name]=model.predict((temp_data_list.values).reshape(1, -1))
-        
+        #X_test = test.drop(col_name, axis =1)
+        #y_test = model.predict(X_test)
+        #print(entire_data.head())
+        #print('6.6.3')
         return entire_data
     else:
         print('There was no data for imputing')
         return entire_data
 
-
-def initial_impute(convrtd_data, entire_data_copy):
-    cat_cols = entire_data_copy.select_dtypes(['object','category']).columns
-    num_cols = entire_data_copy.select_dtypes(exclude=['object','category']).columns   
-    total_cat = list(set(convrtd_data.columns)&set(cat_cols))
-   
-    if len(total_cat) >0:
-        for i in total_cat:
-            convrtd_data[i] = convrtd_data[i].fillna(entire_data_copy[i].mode())
-    total_cat =[]
-    for i in num_cols:
-        try:
-            if i in convrtd_data.columns:
-                convrtd_data[i] = convrtd_data[i].fillna(entire_data_copy[i].mean())
-        except:
-            pass
-    return convrtd_data
-        
-     
-def remove_multicollinearity(dataset, target, threshold = 10.0):
-    
-    '''
-    This method helps to detect multicollinearity and remove it. 
-    
-    Parameters:	
-    dataset : Dataframe
-    
-    target: Dataframe
-    Target variable in the dataset. Should be mentioned in the form of string.
-    
-    threshold: int/float
-    The threshold value for Variance Inflation Factor
-    This parameter is expected from the user. By default, '10.0' is taken.
-    
-    Returns:	
-    X : Dataframe  
-    Returns the dataframe after removing the multicollinearity.
-    
-    '''
-
-    X = dataset.drop([target], axis = 1)
-    y = dataset[target]
-    
-    try:
-        dropped=True
-        while dropped:
-            variables = X.columns
-            non_numeric_data_cols = [col for col in X.columns if X[col].dtype not in ['int64','float64'] ]
-            #print('M')
-            for col in non_numeric_data_cols:
-                #print('M.1')
-                X[col] = X[col].astype('float64')
-            dropped = False
-            vif = [variance_inflation_factor(X[variables].values, X.columns.get_loc(var)) for var in X.columns]
-            max_vif = max(vif)
-            if max_vif > threshold:
-                #print('M.4')
-                maxloc = vif.index(max_vif)
-                X = X.drop([X.columns.tolist()[maxloc]], axis=1)
-                dropped=True
-           
-        X[target] = y
-    except Exception as e:
-        print('Exception occurred in remove_multicollinearity() in data quality module')
-        print(e)
-    return X
-
-    
-    
-    
-    
-    
 
 def noise_detection(df, method = 'savgol', window_length = 101, polyorder = 2, n_lf = 15) :
     
@@ -1184,23 +1177,77 @@ def noise_detection(df, method = 'savgol', window_length = 101, polyorder = 2, n
     return df
     
 
+def initial_impute(convrtd_data):
+    return convrtd_data.fillna(convrtd_data.mean())
 
-def skewness(data_column,data):
+
+
+def remove_multicollinearity(dataset, target, threshold = 10.0):
     
     '''
-    This function helps to check the skewness of the feature. 
+    This method helps to detect multicollinearity and remove it. 
     
     Parameters:	
-    data_column : Feature for which skewness is being checked
+    dataset : Dataframe
     
-    data :  Input Dataframe
+    target: Dataframe
+    Target variable in the dataset. Should be mentioned in the form of string.
+    
+    threshold: int/float
+    The threshold value for Variance Inflation Factor
+    This parameter is expected from the user. By default, '10.0' is taken.
     
     Returns:	
-    s : float 
-    Returns the skewness value of the feature.
+    X : Dataframe  
+    Returns the dataframe after removing the multicollinearity.
     
     '''
-                           
+    
+    #dataset.dropna(inplace = True)
+    X = dataset.drop([target], axis = 1)
+    y = dataset[target]
+    
+    try:
+        dropped=True
+        while dropped:
+            variables = X.columns
+            non_numeric_data_cols = [col for col in X.columns if X[col].dtype not in ['int64','float64'] ]
+            #print('M')
+            #print(non_numeric_data_cols)
+            for col in non_numeric_data_cols:
+                #print('M.1')
+                X[col] = X[col].astype('float64')
+                #print(X[col])
+                #print(X[col].dtype)
+            dropped = False
+            #print('M.2')
+            vif = [variance_inflation_factor(X[variables].values, X.columns.get_loc(var)) for var in X.columns]
+            #print('M.3')
+            max_vif = max(vif)
+            if max_vif > threshold:
+                #print('M.4')
+                maxloc = vif.index(max_vif)
+                #print('M.5')
+                #print(f'Dropping {X.columns[maxloc]} with vif= {max_vif}')
+                X = X.drop([X.columns.tolist()[maxloc]], axis=1)
+                #print('M.6')
+                dropped=True
+            #print('M.7')
+           
+        X[target] = y
+    except Exception as e:
+        print('Exception occurred in remove_multicollinearity() in data quality module')
+        print(e)
+    return X
+
+
+#def skewness(data_column):
+#    return skew(data_column)
+    
+#from scipy.stats import skew, kurtosis
+
+
+def skewness(data_column,data):
     data.dropna(inplace = True)
     
     try:
@@ -1221,65 +1268,41 @@ def skewness(data_column,data):
         print('Exception occurred in skewness() in data quality module')
         print(e)
         
+    
 
-def find_kurtosis(data_column,data, method = 'fisher'):
-    
-    '''
-    This function helps to check the kurtosis of the feature. 
-    
-    Parameters:	
-    data_column : Feature for which kurtosis is being checked
-    
-    data :  Input Dataframe
-    
-    method : 'fisher' or 'pearson'
-    Fisher’s definition is used by default(normal distribution's kurtosis value ==> 0.0). 
-    If method is 'pearson', Pearson’s definition is used (normal distribution's kurtosis value ==> 3.0).
-    
-    Returns:	
-    k : float 
-    Returns the kurtosis value of the feature.
-    
-    '''
-                           
-                           
+
+
+
+
+
+
+
+#def find_kurtosis(data_column):
+#    return kurtosis(data_column)
+
+
+def find_kurtosis(data_column,data):
     data.dropna(inplace = True)
     try:
+        k = kurtosis(data[data_column])
+        #print ('Kurtosis of '+data_column+' is = ',k)
        
-        if method == 'fisher':
-            k = kurtosis(data[data_column])
-            if k == 0:
-                print('The '+data_column+' feature distribution pattern is Mesokurtic.')
-                print('Mesokurtic distributions means that the data follows a normal distribution.')
+        if k == 0:
+            print('The '+data_column+' feature distribution pattern is Mesokurtic.')
+            print('Mesokurtic distributions means that the data follows a normal distribution.')
            
-            elif k < 0:
-                print('The '+data_column+' feature distribution pattern is Platykurtic.')
-                print('Platykurtic distributions are flatter than a normal distribution with shorter tails.')
+        elif k < 0:
+            print('The '+data_column+' feature distribution pattern is Platykurtic.')
+            print('Platykurtic distributions are flatter than a normal distribution with shorter tails.')
            
-            elif k > 0:
-                print('The '+data_column+' feature distribution pattern is Leptokurtic.')
-                print('Leptokurtic distributions are more peaked than a normal distribution with longer tails.')
-               
-        elif method == 'pearson':
-            k = kurtosis(data[data_column], fisher = False)
-            if k == 3:
-                print('The '+data_column+' feature distribution pattern is Mesokurtic.')
-                print('Mesokurtic distributions means that the data follows a normal distribution.')
-            elif k < 3:
-                print('The '+data_column+' feature distribution pattern is Platykurtic.')
-                print('Platykurtic distributions are flatter than a normal distribution with shorter tails.')
-           
-            elif k > 3:
-                print('The '+data_column+' feature distribution pattern is Leptokurtic.')
-                print('Leptokurtic distributions are more peaked than a normal distribution with longer tails.')
-               
-       
+        elif k > 0:
+            print('The '+data_column+' feature distribution pattern is Leptokurtic.')
+            print('Leptokurtic distributions are more peaked than a normal distribution with longer tails.')
+        return k
        
     except Exception as e:
-        print('Exception occurred in find_kurtosis() in data quality module')
+        print('Exception occurred in kurtosis() in data quality module')
         print(e)
-       
-    return k
        
     
 
@@ -1336,25 +1359,10 @@ def balance_data(df, target, method = 'over_sampling'):
             return df_new
     
     except Exception as e:
-        print('Exception occurred in balance_data() in data quality module')
+        print('Exception occurred in data_balancing() in data quality module')
         print(e)
         
 def correlations(data, method = 'pearson'):
-                           
-    '''
-    This function helps to check the correlations of features in data. 
-    
-    Parameters:	
-    data :  Input Dataframe
-    
-    method : 'pearson' or 'spearman' or 'kendall' 
-    
-    Returns:	
-    cor_mat : correlation matrix
-    Returns the correlation matrix of the data.
-    
-    '''                       
-                           
     try:
         if method == 'pearson':
             cor_mat = data.corr(method = 'pearson')
@@ -1369,31 +1377,10 @@ def correlations(data, method = 'pearson'):
         return cor_mat
         
     except Exception as e:
-        print('Exception occurred in correlations() in data quality module')
+        print('Exception occurred in correlation_matrix() in data quality module')
         print(e)
     
 def trends(column_name, data, ind_col, period=100):
-                           
-    '''
-    This function helps to check the trend of the feature. 
-    
-    Parameters:	
-    column_name : Feature for which trend/patterns is being checked
-    
-    data :  Input Dataframe
-    
-    ind_col : Feature to be taken for index
-    
-    period : int, optional
-    Period of the series. Must be used if x is not a pandas object or if the index of x does not have a frequency. Overrides default periodicity of x if x is a pandas object with a timeseries index.
-    
-    
-    Returns:	
-   
-    Returns the trend plot for the feature.
-    
-    '''                       
-                           
     
     try:
         data_temp = data
@@ -1416,6 +1403,13 @@ def trends(column_name, data, ind_col, period=100):
         return fig.show()
         
     except Exception as e:
-        print('Exception occurred in trends() in data quality module')
+        print('Exception occurred in trend_identification() in data quality module')
         print(e)
         
+    
+
+
+
+
+
+
